@@ -26,7 +26,8 @@ import cv2
 import argparse
 
 #to scan directory for getting the file list
-from os import listdir
+
+from os import listdir, path
 from os.path import isfile, join
 
 
@@ -46,9 +47,8 @@ validation_data_dir = './val_61326'
 # number of epochs 
 epochs = 50
 
-
 # batch size
-batch_size = 1
+batch_size = 16
 
 
 #standardization of bool inputs from command line Arguments
@@ -175,20 +175,20 @@ def train_top_model():
         validation_data, validation_labels, batch_size=batch_size, verbose=1)
 
     plt.figure(1)
-
     # plot the accuracy
-    plt.subplot(211)
     plt.plot(history.history['acc'])
     plt.plot(history.history['val_acc'])
     plt.title('model accuracy')
     plt.ylabel('accuracy')
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc='upper left')
+    plt.show()
 
 
-def buildModel(image):
+def buildModel(image, class_dictionary):
          # build the VGG16 network
         model = applications.VGG16(include_top=False, weights='imagenet')
+        num_classes = len(class_dictionary)
 
         # get the prediction from the pre-trained VGG16 model
         VGGprediction = model.predict(image)
@@ -211,8 +211,6 @@ def predict(predictDir):
 
     class_dictionary = np.load('class_indices.npy').item()
 
-    num_classes = len(class_dictionary)
-
     for image_path in imgFiles:
         
         orig = cv2.imread(image_path)
@@ -226,10 +224,8 @@ def predict(predictDir):
 
         image = np.expand_dims(image, axis=0)
 
-        model = buildModel()
-
         #final class
-        class_predicted= buildModel(image)
+        class_predicted= buildModel(image, class_dictionary)
 
         inID = class_predicted[0]
 
@@ -250,8 +246,14 @@ def main():
         if(args.saveVGG):
             saveOutputs()
         train_top_model()
+    elif(args.predictDir):
+        if(path.isdir(args.predictDir)):
+            print("Predicting the class:")
+            predict(args.predictDir)
+        else:
+            print("ERROR: the dirctory provided for test images does not exist.")
     else:
-        predict(args.predictDir)
+        print("ERROR: please provide the testImage directory.")
 
     
 if __name__ == '__main__':
